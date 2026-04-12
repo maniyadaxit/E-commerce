@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: aurora-gems-backend
+  servlet:
+    multipart:
+      max-file-size: ${APP_UPLOAD_MAX_FILE_SIZE:10MB}
+      max-request-size: ${APP_UPLOAD_MAX_REQUEST_SIZE:10MB}
+  profiles:
+    default: dev
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aurora_gems_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:seed.sql
+  jackson:
+    time-zone: UTC
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:4f6b5a7336763979244226452948404d635166546a576e5a723475377821412544}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:rzp_test_placeholder}
+  key-secret: ${RAZORPAY_KEY_SECRET:placeholder}
+
+app:
+  upload:
+    dir: ${APP_UPLOAD_DIR:./uploads}

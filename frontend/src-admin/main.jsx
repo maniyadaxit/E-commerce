@@ -1,0 +1,16 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import AdminApp from "./App";
+import { AuthProvider } from "../src/context/AuthContext";
+import "../src/styles.css";
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <AdminApp />
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);

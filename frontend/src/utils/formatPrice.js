@@ -1,0 +1,7 @@
+export function formatPrice(valueInPaise = 0) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format((valueInPaise || 0) / 100);
+}
