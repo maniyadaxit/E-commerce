@@ -1,46 +1,61 @@
 import { Link } from "react-router-dom";
-import { formatPrice } from "../../utils/formatPrice";
+import { ProductCard } from "../product/ProductCard";
 
 export function CollectionScroller({ title, products = [] }) {
   return (
-    <section className="section-shell mt-16">
-      <div className="mb-6 flex items-end justify-between gap-4">
+    <section className="section-shell mt-20">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">
-            Curated Edit
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
+            Just In
           </p>
-          <h2 className="font-display text-4xl text-ink md:text-5xl">{title}</h2>
+          <h2 className="mt-3 font-display text-4xl text-ink md:text-5xl">{title}</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-copy/72">
+            This section updates automatically and only shows products added in the last 7 days.
+          </p>
         </div>
-        <Link to="/search?sort=newest" className="text-sm font-semibold text-accent">
+        <Link
+          to="/search?sort=newest"
+          className="text-[11px] font-semibold uppercase tracking-[0.24em] text-copy/65 transition hover:text-accent"
+        >
           View All
         </Link>
       </div>
-      <div className="grid gap-4 lg:grid-cols-[1.35fr,1fr]">
-        <div className="overflow-hidden rounded-[2rem] bg-ink p-8 text-white shadow-soft">
-          <p className="text-xs uppercase tracking-[0.2em] text-accent">Latest Collection</p>
-          <h3 className="mt-4 font-display text-5xl">Luxury Within Reach</h3>
-          <p className="mt-4 max-w-md text-white/75">
-            Sculpted silhouettes and premium finishes designed for everyday gifting.
+      <div className="grid gap-5 xl:grid-cols-[0.78fr,1.22fr]">
+        <div className="overflow-hidden rounded-[2.2rem] bg-ink p-8 text-white shadow-soft">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-accent/85">New Arrival Window</p>
+          <h3 className="mt-4 font-display text-5xl">Only the freshest drops.</h3>
+          <p className="mt-4 max-w-md text-sm leading-7 text-white/68">
+            Older catalog items are intentionally hidden here so shoppers always see what
+            landed most recently from the admin panel.
           </p>
+          <div className="mt-8 rounded-[1.7rem] border border-white/10 bg-white/5 p-5">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">
+              Live rule
+            </p>
+            <p className="mt-3 font-display text-3xl text-white">Created within the last 7 days</p>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          {products.slice(0, 3).map((product) => (
-            <Link
-              key={product.id}
-              to={`/products/${product.slug}`}
-              className="rounded-[1.5rem] bg-white p-3 shadow-soft"
-            >
-              <img
-                src={product.primaryImageUrl}
-                alt={product.name}
-                className="aspect-[4/5] rounded-[1.2rem] object-cover"
-                loading="lazy"
-              />
-              <p className="mt-3 line-clamp-2 text-sm font-medium text-ink">{product.name}</p>
-              <p className="mt-2 text-sm text-copy/70">{formatPrice(product.price)}</p>
-            </Link>
-          ))}
-        </div>
+        {products.length ? (
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {products.slice(0, 6).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-[#d9ccbd] bg-white p-8 shadow-soft">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/45">
+              No recent products yet
+            </p>
+            <h3 className="mt-3 font-display text-4xl text-ink">
+              Nothing new has been added in the last 7 days.
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-copy/72">
+              Add fresh products from the owner panel and they will appear here automatically
+              without showing older catalog entries.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

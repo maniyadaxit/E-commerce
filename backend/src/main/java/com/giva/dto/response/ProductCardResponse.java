@@ -1,6 +1,7 @@
 package com.giva.dto.response;
 
 import com.giva.model.ProductMetal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ public record ProductCardResponse(
     String hoverImageUrl,
     List<String> colourSwatches,
     double rating,
-    long reviewCount
+    long reviewCount,
+    OffsetDateTime createdAt
 ) {
 }

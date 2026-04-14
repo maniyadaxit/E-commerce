@@ -8,7 +8,7 @@ export const heroSlides = [
     cta: "Shop Silver",
     href: "/collections/pendants",
     image:
-      "https://placehold.co/1800x900/png?text=Silver+Styles+Campaign",
+      "https://images.pexels.com/photos/30720996/pexels-photo-30720996.jpeg?auto=compress&cs=tinysrgb&w=1800&h=1000&fit=crop",
   },
   {
     title: "Rose Gold Edit",
@@ -16,7 +16,7 @@ export const heroSlides = [
     cta: "Explore Rose Gold",
     href: "/collections/rings",
     image:
-      "https://placehold.co/1800x900/png?text=Rose+Gold+Campaign",
+      "https://images.pexels.com/photos/30721005/pexels-photo-30721005.jpeg?auto=compress&cs=tinysrgb&w=1800&h=1000&fit=crop",
   },
   {
     title: "Lab-Grown Diamond Essentials",
@@ -24,7 +24,7 @@ export const heroSlides = [
     cta: "Discover Diamonds",
     href: "/search?q=lab%20diamond",
     image:
-      "https://placehold.co/1800x900/png?text=Lab+Diamond+Campaign",
+      "https://images.pexels.com/photos/30423960/pexels-photo-30423960.jpeg?auto=compress&cs=tinysrgb&w=1800&h=1000&fit=crop",
   },
   {
     title: "Gift Store Curations",
@@ -32,7 +32,7 @@ export const heroSlides = [
     cta: "Visit Gift Store",
     href: "/pages/gift-store",
     image:
-      "https://placehold.co/1800x900/png?text=Gift+Store+Campaign",
+      "https://images.pexels.com/photos/23859385/pexels-photo-23859385.jpeg?auto=compress&cs=tinysrgb&w=1800&h=1000&fit=crop",
   },
   {
     title: "Pure Gold Icons",
@@ -40,7 +40,7 @@ export const heroSlides = [
     cta: "Shop Gold",
     href: "/search?q=gold",
     image:
-      "https://placehold.co/1800x900/png?text=Pure+Gold+Campaign",
+      "https://images.pexels.com/photos/3793817/pexels-photo-3793817.jpeg?auto=compress&cs=tinysrgb&w=1800&h=1000&fit=crop",
   },
 ];
 

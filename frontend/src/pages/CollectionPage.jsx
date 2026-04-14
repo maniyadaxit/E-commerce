@@ -7,7 +7,6 @@ import { Breadcrumb } from "../components/ui/Breadcrumb";
 import { Button } from "../components/ui/Button";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
-import { mockProducts } from "../data/mockCatalog";
 
 const initialFilters = {
   metal: [],
@@ -46,7 +45,7 @@ export function CollectionPage() {
         setHasNext(response.hasNext);
         setPage(nextPage);
       } catch {
-        setProducts(mockProducts);
+        setProducts([]);
         setHasNext(false);
       } finally {
         setLoading(false);
@@ -57,6 +56,27 @@ export function CollectionPage() {
 
   useEffect(() => {
     loadProducts(0, true);
+  }, [loadProducts]);
+
+  useEffect(() => {
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        loadProducts(0, true);
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadProducts(0, true);
+    }, 30000);
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [loadProducts]);
 
   const sentinelRef = useInfiniteScroll(

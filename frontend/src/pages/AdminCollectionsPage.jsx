@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { createCollection } from "../api/adminApi";
+import { createCollection, deleteCollection } from "../api/adminApi";
 import { getCollections } from "../api/catalogApi";
 import { Button } from "../components/ui/Button";
 
@@ -10,18 +10,17 @@ const schema = z.object({
   name: z.string().min(2),
   handle: z.string().min(2),
   description: z.string().min(5),
-  bannerImageUrl: z.string().url(),
 });
 
 export function AdminCollectionsPage() {
   const [collections, setCollections] = useState([]);
+  const [busyAction, setBusyAction] = useState("");
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
       handle: "",
       description: "",
-      bannerImageUrl: "https://placehold.co/1600x720/png?text=Collection",
     },
   });
 
@@ -38,8 +37,29 @@ export function AdminCollectionsPage() {
           <h1 className="font-display text-5xl text-ink">Collections</h1>
           {collections.map((collection) => (
             <div key={collection.id} className="rounded-[2rem] bg-white p-5 shadow-soft">
-              <p className="font-semibold text-ink">{collection.name}</p>
-              <p className="text-sm text-copy/60">{collection.handle}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-ink">{collection.name}</p>
+                  <p className="text-sm text-copy/60">{collection.handle}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="border-rose-200 text-rose-700 hover:border-rose-300 hover:text-rose-800"
+                  disabled={busyAction === `delete-${collection.id}`}
+                  onClick={async () => {
+                    setBusyAction(`delete-${collection.id}`);
+                    try {
+                      await deleteCollection(collection.id);
+                      await refresh();
+                    } finally {
+                      setBusyAction("");
+                    }
+                  }}
+                >
+                  {busyAction === `delete-${collection.id}` ? "Deleting..." : "Delete"}
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -60,7 +80,6 @@ export function AdminCollectionsPage() {
             <input className="w-full rounded-full border border-ink/10 px-5 py-3" placeholder="Name" {...form.register("name")} />
             <input className="w-full rounded-full border border-ink/10 px-5 py-3" placeholder="Handle" {...form.register("handle")} />
             <textarea className="w-full rounded-[1.5rem] border border-ink/10 px-5 py-3" rows="4" placeholder="Description" {...form.register("description")} />
-            <input className="w-full rounded-full border border-ink/10 px-5 py-3" placeholder="Banner image URL" {...form.register("bannerImageUrl")} />
             <Button type="submit" className="w-full">
               Save Collection
             </Button>

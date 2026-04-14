@@ -125,6 +125,7 @@ public class ResponseMapper {
             review.getBody(),
             review.getImageUrl(),
             review.isApproved(),
+            review.getProduct().getName(),
             review.getUser().getName(),
             review.getCreatedAt()
         );
@@ -146,7 +147,8 @@ public class ResponseMapper {
             images.size() > 1 ? images.get(1).getUrl() : (images.isEmpty() ? null : images.get(0).getUrl()),
             product.getVariants().stream().map(variant -> variant.getColour().name()).distinct().toList(),
             rating,
-            reviewCount
+            reviewCount,
+            product.getCreatedAt()
         );
     }
 

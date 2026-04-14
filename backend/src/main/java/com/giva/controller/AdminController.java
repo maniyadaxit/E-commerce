@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -85,8 +86,8 @@ public class AdminController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<List<ReviewResponse>> pendingReviews() {
-        return ResponseEntity.ok(reviewService.listPending());
+    public ResponseEntity<List<ReviewResponse>> reviews() {
+        return ResponseEntity.ok(reviewService.listAll());
     }
 
     @PatchMapping("/reviews/{id}")
@@ -95,6 +96,12 @@ public class AdminController {
         @Valid @RequestBody ReviewModerationRequest request
     ) {
         return ResponseEntity.ok(reviewService.moderate(id, request));
+    }
+
+    @DeleteMapping("/reviews/{id}")
+    public ResponseEntity<Void> deleteReview(@PathVariable UUID id) {
+        reviewService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/coupons")

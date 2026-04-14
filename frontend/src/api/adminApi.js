@@ -42,6 +42,10 @@ export async function moderateReview(id, payload) {
   return data;
 }
 
+export async function deleteAdminReview(id) {
+  await client.delete(`/owner/reviews/${id}`);
+}
+
 export async function getAdminCoupons() {
   const { data } = await client.get("/owner/coupons");
   return data;
@@ -85,4 +89,8 @@ export async function deleteProduct(id) {
 export async function createCollection(payload) {
   const { data } = await client.post("/collections", payload);
   return data;
+}
+
+export async function deleteCollection(id) {
+  await client.delete(`/collections/${id}`);
 }

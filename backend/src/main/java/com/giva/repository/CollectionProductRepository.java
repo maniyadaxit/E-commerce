@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CollectionProductRepository extends JpaRepository<CollectionProduct, CollectionProductId> {
 
     List<CollectionProduct> findByCollection_IdOrderBySortOrderAsc(UUID collectionId);
+
+    void deleteByCollection_Id(UUID collectionId);
 }

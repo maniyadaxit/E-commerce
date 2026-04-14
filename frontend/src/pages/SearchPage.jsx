@@ -6,7 +6,6 @@ import { Button } from "../components/ui/Button";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useDebounce } from "../hooks/useDebounce";
 import { popularSearches } from "../data/marketing";
-import { mockProducts } from "../data/mockCatalog";
 
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,29 +16,57 @@ export function SearchPage() {
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
+    let active = true;
+
     async function load() {
       if (!debouncedQuery) {
-        setResults(mockProducts);
+        setResults([]);
         setSuggestions([]);
         return;
       }
       setLoading(true);
       try {
         const response = await searchProducts({ q: debouncedQuery, size: 9 });
-        setResults(response.items);
-        setSuggestions(response.items.slice(0, 5));
+        if (!active) {
+          return;
+        }
+        setResults(response.items || []);
+        setSuggestions((response.items || []).slice(0, 5));
       } catch {
-        const fallback = mockProducts.filter((product) =>
-          product.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-        );
-        setResults(fallback);
-        setSuggestions(fallback.slice(0, 5));
+        if (active) {
+          setResults([]);
+          setSuggestions([]);
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible" && debouncedQuery) {
+        load();
       }
     }
 
     load();
+
+    const intervalId = window.setInterval(() => {
+      if (debouncedQuery) {
+        load();
+      }
+    }, 30000);
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [debouncedQuery]);
 
   return (
@@ -95,7 +122,15 @@ export function SearchPage() {
             ))}
           </div>
         ) : (
-          <ProductGrid products={results} />
+          <ProductGrid
+            products={results}
+            emptyTitle={query ? "No matching products found." : "Start with a search term."}
+            emptyDescription={
+              query
+                ? "Try a different keyword, finish, or category to find the right piece."
+                : "Search by product name, metal, gifting intent, or collection."
+            }
+          />
         )}
       </div>
     </section>

@@ -7,10 +7,7 @@ import com.giva.dto.response.PaymentVerificationResponse;
 import com.giva.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -23,12 +20,14 @@ public class PaymentController {
     }
 
     @PostMapping("/create-order")
-    public ResponseEntity<PaymentOrderResponse> createOrder(@Valid @RequestBody PaymentCreateOrderRequest request) {
+    public ResponseEntity<PaymentOrderResponse> createOrder(
+            @Valid @RequestBody PaymentCreateOrderRequest request) {
         return ResponseEntity.ok(paymentService.createOrder(request));
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<PaymentVerificationResponse> verify(@Valid @RequestBody PaymentVerifyRequest request) {
+    public ResponseEntity<PaymentVerificationResponse> verify(
+            @Valid @RequestBody PaymentVerifyRequest request) {
         return ResponseEntity.ok(paymentService.verify(request));
     }
 }

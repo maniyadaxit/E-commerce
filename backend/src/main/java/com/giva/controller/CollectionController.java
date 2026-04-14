@@ -9,6 +9,7 @@ import com.giva.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,5 +62,12 @@ public class CollectionController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<CollectionResponse> create(@Valid @RequestBody CollectionRequest request) {
         return ResponseEntity.ok(collectionService.create(request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<Void> delete(@PathVariable java.util.UUID id) {
+        collectionService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,7 +3,7 @@ import { RatingStars } from "../ui/RatingStars";
 
 export function ReviewCard({ review }) {
   return (
-    <article className="rounded-[1.5rem] border border-ink/10 bg-white p-5 shadow-soft">
+    <article className="rounded-[1.75rem] border border-ink/10 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)]">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-semibold text-ink">{review.userName}</p>
@@ -18,12 +18,14 @@ export function ReviewCard({ review }) {
       ) : null}
       <p className="mt-3 text-sm leading-7 text-copy/80">{review.body}</p>
       {review.imageUrl ? (
-        <img
-          src={review.imageUrl}
-          alt={review.title || "Review upload"}
-          className="mt-4 aspect-[4/3] w-full rounded-[1.5rem] object-cover"
-          loading="lazy"
-        />
+        <div className="mt-4 overflow-hidden rounded-[1.5rem]">
+          <img
+            src={review.imageUrl}
+            alt={review.title || "Review upload"}
+            className="aspect-[4/3] w-full object-cover"
+            loading="lazy"
+          />
+        </div>
       ) : null}
     </article>
   );

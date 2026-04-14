@@ -10,6 +10,7 @@ public record ReviewResponse(
     String body,
     String imageUrl,
     boolean approved,
+    String productName,
     String userName,
     OffsetDateTime createdAt
 ) {

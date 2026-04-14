@@ -4,7 +4,6 @@ import {
   getWishlist,
   removeFromWishlist,
 } from "../api/wishlistApi";
-import { mockProducts } from "../data/mockCatalog";
 import { useAuth } from "../hooks/useAuth";
 
 const GUEST_WISHLIST_KEY = "aurora_gems_guest_wishlist";
@@ -13,7 +12,10 @@ export const WishlistContext = createContext(null);
 
 function readGuestWishlist() {
   try {
-    return JSON.parse(window.localStorage.getItem(GUEST_WISHLIST_KEY) || "[]");
+    const parsed = JSON.parse(window.localStorage.getItem(GUEST_WISHLIST_KEY) || "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((entry) => entry && typeof entry === "object" && entry.id)
+      : [];
   } catch {
     return [];
   }
@@ -33,13 +35,12 @@ export function WishlistProvider({ children }) {
       if (isAuthenticated) {
         const guestItems = readGuestWishlist();
         if (guestItems.length) {
-          await Promise.all(guestItems.map((id) => addToWishlist(id)));
+          await Promise.all(guestItems.map((item) => addToWishlist(item.id)));
           writeGuestWishlist([]);
         }
         setItems(await getWishlist());
       } else {
-        const ids = readGuestWishlist();
-        setItems(mockProducts.filter((product) => ids.includes(product.id)));
+        setItems(readGuestWishlist());
       }
       setLoading(false);
     }
@@ -67,11 +68,25 @@ export function WishlistProvider({ children }) {
           return;
         }
 
-        const ids = readGuestWishlist();
-        const exists = ids.includes(product.id);
-        const nextIds = exists ? ids.filter((id) => id !== product.id) : [...ids, product.id];
-        writeGuestWishlist(nextIds);
-        setItems(mockProducts.filter((entry) => nextIds.includes(entry.id)));
+        const guestItems = readGuestWishlist();
+        const exists = guestItems.some((item) => item.id === product.id);
+        const nextItems = exists
+          ? guestItems.filter((item) => item.id !== product.id)
+          : [
+              ...guestItems,
+              {
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                mrp: product.mrp,
+                metal: product.metal,
+                primaryImageUrl: product.primaryImageUrl,
+                hoverImageUrl: product.hoverImageUrl,
+              },
+            ];
+        writeGuestWishlist(nextItems);
+        setItems(nextItems);
       },
     }),
     [isAuthenticated, items, loading]

@@ -80,11 +80,25 @@ public class ReviewService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ReviewResponse> listAll() {
+        return reviewRepository.findAllByOrderByCreatedAtDesc().stream()
+            .map(responseMapper::toReviewResponse)
+            .toList();
+    }
+
     @Transactional
     public ReviewResponse moderate(UUID id, ReviewModerationRequest request) {
         Review review = reviewRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
         review.setApproved(request.approved());
-        return responseMapper.toReviewResponse(review);
+        return responseMapper.toReviewResponse(reviewRepository.save(review));
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        Review review = reviewRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+        reviewRepository.delete(review);
     }
 }

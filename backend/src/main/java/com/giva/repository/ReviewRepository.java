@@ -13,6 +13,8 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
     List<Review> findByApprovedFalseOrderByCreatedAtDesc();
 
+    List<Review> findAllByOrderByCreatedAtDesc();
+
     @Query("select coalesce(avg(r.rating), 0) from Review r where r.product.id = :productId and r.approved = true")
     double averageRating(@Param("productId") UUID productId);
 

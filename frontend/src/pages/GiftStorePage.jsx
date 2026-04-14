@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { searchProducts } from "../api/catalogApi";
 import { ProductGrid } from "../components/product/ProductGrid";
 import { Button } from "../components/ui/Button";
-import { mockProducts } from "../data/mockCatalog";
 
 const giftFilters = {
   occasion: ["Wedding", "Birthday", "Anniversary", "Just Because"],
@@ -20,15 +19,15 @@ const giftFilters = {
 
 export function GiftStorePage() {
   const [activeRecipient, setActiveRecipient] = useState("For Her");
-  const [products, setProducts] = useState(mockProducts);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     async function load() {
       try {
         const response = await searchProducts({ recipient: activeRecipient, size: 12 });
-        setProducts(response.items?.length ? response.items : mockProducts);
+        setProducts(response.items || []);
       } catch {
-        setProducts(mockProducts);
+        setProducts([]);
       }
     }
     load();

@@ -12,7 +12,6 @@ import { RatingStars } from "../components/ui/RatingStars";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useCart } from "../hooks/useCart";
 import { useWishlist } from "../hooks/useWishlist";
-import { mockProducts } from "../data/mockCatalog";
 import { formatPrice } from "../utils/formatPrice";
 
 export function ProductPage() {
@@ -21,16 +20,19 @@ export function ProductPage() {
   const { addItem } = useCart();
   const { isSaved, toggle } = useWishlist();
   const [product, setProduct] = useState(null);
-  const [recommendations, setRecommendations] = useState(mockProducts);
+  const [recommendations, setRecommendations] = useState([]);
   const [selectedColour, setSelectedColour] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [activeTab, setActiveTab] = useState("description");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [deliveryPincode, setDeliveryPincode] = useState("");
   const [deliveryInfo, setDeliveryInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
       try {
         const [productData, recommendationData] = await Promise.all([
           getProduct(slug),
@@ -39,28 +41,16 @@ export function ProductPage() {
         setProduct(productData);
         setSelectedColour(productData.variants?.[0]?.colour || "");
         setSelectedSize(productData.variants?.[0]?.size || "");
-        setRecommendations(recommendationData.items || mockProducts);
+        setRecommendations(recommendationData.items || []);
+        setNotFound(false);
       } catch {
-        const fallback = {
-          ...mockProducts[0],
-          description:
-            "A premium-inspired pendant with soft curves, crafted to bring an everyday luxury feel.",
-          customizable: false,
-          variants: [
-            { id: "v1", colour: "SILVER", size: null, price: mockProducts[0].price, stockQty: 5 },
-            { id: "v2", colour: "GOLD", size: null, price: mockProducts[0].price + 10000, stockQty: 4 },
-          ],
-          images: [
-            { id: "i1", url: mockProducts[0].primaryImageUrl, primary: true },
-            { id: "i2", url: mockProducts[0].hoverImageUrl, primary: false },
-          ],
-          reviews: [],
-          collections: ["Pendants"],
-          attributes: { style: ["Everyday"], recipient: ["For Her"] },
-          weightGrams: 12.4,
-        };
-        setProduct(fallback);
-        setSelectedColour("SILVER");
+        setProduct(null);
+        setRecommendations([]);
+        setSelectedColour("");
+        setSelectedSize("");
+        setNotFound(true);
+      } finally {
+        setLoading(false);
       }
     }
     load();
@@ -90,11 +80,35 @@ export function ProductPage() {
     [product, selectedColour, selectedSize]
   );
 
-  if (!product) {
+  if (loading) {
     return (
       <div className="section-shell py-10">
         <Skeleton className="h-[640px]" />
       </div>
+    );
+  }
+
+  if (notFound || !product) {
+    return (
+      <section className="section-shell py-10">
+        <div className="rounded-[2.5rem] border border-dashed border-ink/12 bg-white px-8 py-12 text-center shadow-soft">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ink/45">
+            Product Unavailable
+          </p>
+          <h1 className="mt-4 font-display text-5xl text-ink">This product is not live right now.</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-copy/72">
+            It may have been removed from the catalog or has not been added yet from the owner panel.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button as={Link} to="/search">
+              Browse Catalog
+            </Button>
+            <Button as={Link} to="/" variant="secondary">
+              Back Home
+            </Button>
+          </div>
+        </div>
+      </section>
     );
   }
 
@@ -293,23 +307,31 @@ export function ProductPage() {
           </p>
           <h2 className="font-display text-4xl text-ink">Pair it with another favorite.</h2>
         </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {recommendations.map((item) => (
-            <Link
-              key={item.id}
-              to={`/products/${item.slug}`}
-              className="rounded-[1.5rem] bg-white p-4 shadow-soft"
-            >
-              <img
-                src={item.primaryImageUrl}
-                alt={item.name}
-                className="aspect-[4/5] rounded-[1.2rem] object-cover"
-                loading="lazy"
-              />
-              <p className="mt-3 text-sm font-medium text-ink">{item.name}</p>
-            </Link>
-          ))}
-        </div>
+        {recommendations.length ? (
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {recommendations.map((item) => (
+              <Link
+                key={item.id}
+                to={`/products/${item.slug}`}
+                className="rounded-[1.5rem] bg-white p-4 shadow-soft"
+              >
+                <img
+                  src={item.primaryImageUrl}
+                  alt={item.name}
+                  className="aspect-[4/5] rounded-[1.2rem] object-cover"
+                  loading="lazy"
+                />
+                <p className="mt-3 text-sm font-medium text-ink">{item.name}</p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-ink/12 bg-white px-6 py-10 shadow-soft">
+            <p className="text-sm leading-7 text-copy/72">
+              Recommendation slots will fill in automatically once more catalog items are added.
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="mt-16">
@@ -319,11 +341,22 @@ export function ProductPage() {
           </p>
           <h2 className="font-display text-4xl text-ink">What buyers are saying.</h2>
         </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {(product.reviews?.length ? product.reviews : []).map((review) => (
-            <ReviewCard key={review.id} review={review} />
-          ))}
-        </div>
+        {product.reviews?.length ? (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {product.reviews.map((review) => (
+              <ReviewCard key={review.id} review={review} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-ink/12 bg-white px-6 py-10 shadow-soft">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/45">
+              No reviews yet
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-copy/72">
+              Once customers submit reviews and they are approved from the owner panel, they will appear here automatically.
+            </p>
+          </div>
+        )}
       </section>
 
       <SizeGuide open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />

@@ -7,6 +7,7 @@ import { createPaymentOrder, placeOrder } from "../api/ordersApi";
 import { createAddress, getAddresses } from "../api/userApi";
 import { Button } from "../components/ui/Button";
 import { useCart } from "../hooks/useCart";
+import { formatPrice } from "../utils/formatPrice";
 
 const addressSchema = z.object({
   name: z.string().min(2),
@@ -20,7 +21,15 @@ const addressSchema = z.object({
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, clear } = useCart();
+  const {
+    cart,
+    clear,
+    appliedCoupon,
+    couponStatus,
+    couponMessage,
+    discountTotal,
+    payableTotal,
+  } = useCart();
   const [step, setStep] = useState(1);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -50,11 +59,30 @@ export function CheckoutPage() {
       .catch(() => setAddresses([]));
   }, []);
 
+  const proceedToPayment = async () => {
+    if (selectedAddressId) {
+      setStep(2);
+      return;
+    }
+
+    const valid = await form.trigger();
+    if (valid) {
+      setStep(2);
+    }
+  };
+
   const submitOrder = async () => {
     setLoading(true);
     try {
       let addressId = selectedAddressId;
+
       if (!addressId) {
+        const valid = await form.trigger();
+        if (!valid) {
+          setStep(1);
+          return;
+        }
+
         const address = await createAddress({
           ...form.getValues(),
           defaultAddress: addresses.length === 0,
@@ -65,7 +93,7 @@ export function CheckoutPage() {
       let paymentPayload = {};
       if (paymentMethod === "RAZORPAY") {
         const order = await createPaymentOrder({
-          amount: cart.subtotal,
+          amount: payableTotal,
           receipt: `receipt_${Date.now()}`,
         });
         paymentPayload = {
@@ -77,7 +105,7 @@ export function CheckoutPage() {
       const placed = await placeOrder({
         addressId,
         paymentMethod,
-        couponCode: sessionStorage.getItem("aurora_gems_coupon") || null,
+        couponCode: appliedCoupon?.code || null,
         ...paymentPayload,
       });
       await clear();
@@ -89,16 +117,18 @@ export function CheckoutPage() {
 
   return (
     <section className="section-shell py-10">
-      <h1 className="font-display text-5xl text-ink">Checkout</h1>
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr,360px]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">Checkout</p>
+      <h1 className="mt-3 font-display text-5xl text-ink">Complete your order.</h1>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr,380px]">
         <div className="space-y-6">
-          <div className="rounded-[2rem] bg-white p-6 shadow-soft">
+          <div className="rounded-[2rem] border border-[#e2d8ca] bg-white p-6 shadow-soft">
             <div className="flex items-center gap-3">
               {[1, 2, 3].map((item) => (
                 <div
                   key={item}
                   className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    step >= item ? "bg-accent text-ink" : "bg-cream text-copy"
+                    step >= item ? "bg-accent text-white" : "bg-cream text-copy"
                   }`}
                 >
                   {item}
@@ -108,12 +138,15 @@ export function CheckoutPage() {
           </div>
 
           {step === 1 ? (
-            <div className="rounded-[2rem] bg-white p-6 shadow-soft">
+            <div className="rounded-[2rem] border border-[#e2d8ca] bg-white p-6 shadow-soft">
               <h2 className="font-display text-4xl text-ink">Address</h2>
               {addresses.length ? (
                 <div className="mt-6 space-y-3">
                   {addresses.map((address) => (
-                    <label key={address.id} className="block rounded-[1.5rem] border border-ink/10 p-4">
+                    <label
+                      key={address.id}
+                      className="block rounded-[1.5rem] border border-[#e2d8ca] p-4"
+                    >
                       <input
                         type="radio"
                         className="mr-3"
@@ -129,25 +162,28 @@ export function CheckoutPage() {
                   {["name", "phone", "line1", "line2", "city", "state", "pincode"].map((field) => (
                     <input
                       key={field}
-                      className="w-full rounded-full border border-ink/10 px-5 py-3"
+                      className="w-full rounded-full border border-[#e2d8ca] px-5 py-3"
                       placeholder={field}
                       {...form.register(field)}
                     />
                   ))}
                 </form>
               )}
-              <Button className="mt-6" onClick={() => setStep(2)}>
+              <Button className="mt-6" onClick={proceedToPayment}>
                 Continue to Payment
               </Button>
             </div>
           ) : null}
 
           {step === 2 ? (
-            <div className="rounded-[2rem] bg-white p-6 shadow-soft">
+            <div className="rounded-[2rem] border border-[#e2d8ca] bg-white p-6 shadow-soft">
               <h2 className="font-display text-4xl text-ink">Payment</h2>
               <div className="mt-6 space-y-3">
                 {["COD", "RAZORPAY"].map((method) => (
-                  <label key={method} className="block rounded-[1.5rem] border border-ink/10 p-4">
+                  <label
+                    key={method}
+                    className="block rounded-[1.5rem] border border-[#e2d8ca] p-4"
+                  >
                     <input
                       type="radio"
                       className="mr-3"
@@ -162,7 +198,7 @@ export function CheckoutPage() {
                 <Button variant="secondary" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button onClick={submitOrder} disabled={loading}>
+                <Button onClick={submitOrder} disabled={loading || !cart.items?.length}>
                   {loading ? "Placing Order..." : "Place Order"}
                 </Button>
               </div>
@@ -170,10 +206,45 @@ export function CheckoutPage() {
           ) : null}
         </div>
 
-        <div className="rounded-[2rem] bg-white p-6 shadow-soft">
+        <div className="rounded-[2rem] border border-[#e2d8ca] bg-white p-6 shadow-soft">
           <h2 className="font-display text-3xl text-ink">Summary</h2>
-          <p className="mt-4 text-sm text-copy/70">Items: {cart.totalItems}</p>
-          <p className="mt-2 text-sm text-copy/70">Subtotal: ₹{(cart.subtotal / 100).toLocaleString("en-IN")}</p>
+          <div className="mt-5 space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-copy/70">Items</span>
+              <span>{cart.totalItems}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-copy/70">Subtotal</span>
+              <span>{formatPrice(cart.subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-copy/70">Discount</span>
+              <span>- {formatPrice(discountTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-copy/70">Shipping</span>
+              <span>Free</span>
+            </div>
+          </div>
+
+          {appliedCoupon ? (
+            <div className="mt-5 rounded-[1.5rem] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              Coupon {appliedCoupon.code} applied successfully.
+            </div>
+          ) : null}
+
+          {!appliedCoupon && couponStatus === "error" && couponMessage ? (
+            <div className="mt-5 rounded-[1.5rem] bg-red-50 px-4 py-3 text-sm text-red-700">
+              {couponMessage}
+            </div>
+          ) : null}
+
+          <div className="mt-6 border-t border-[#eadfce] pt-4">
+            <div className="flex items-center justify-between font-semibold text-ink">
+              <span>Total Payable</span>
+              <span>{formatPrice(payableTotal)}</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>

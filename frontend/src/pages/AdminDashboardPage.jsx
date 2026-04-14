@@ -1,4 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ArrowUpRight,
+  Bell,
+  Layers3,
+  LayoutDashboard,
+  LogOut,
+  Package2,
+  RefreshCcw,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Star,
+  TicketPercent,
+  Users2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation } from "react-router-dom";
@@ -7,6 +22,8 @@ import {
   createCollection,
   createCoupon,
   createProduct,
+  deleteCollection,
+  deleteAdminReview,
   deleteProduct,
   getAdminCoupons,
   getAdminDashboard,
@@ -30,6 +47,8 @@ const adminLinks = [
     key: "overview",
     label: "Overview",
     href: "/owner",
+    icon: LayoutDashboard,
+    group: "Main",
     eyebrow: "Pulse",
     description: "Revenue, customers, and inventory health.",
   },
@@ -37,6 +56,8 @@ const adminLinks = [
     key: "products",
     label: "Products",
     href: "/owner/products",
+    icon: Package2,
+    group: "Catalog",
     eyebrow: "Catalog",
     description: "Add new pieces and remove stale stock.",
   },
@@ -44,6 +65,8 @@ const adminLinks = [
     key: "collections",
     label: "Collections",
     href: "/owner/collections",
+    icon: Layers3,
+    group: "Catalog",
     eyebrow: "Merchandising",
     description: "Shape storefront discovery and curation.",
   },
@@ -51,6 +74,8 @@ const adminLinks = [
     key: "orders",
     label: "Orders",
     href: "/owner/orders",
+    icon: ShoppingBag,
+    group: "Main",
     eyebrow: "Fulfillment",
     description: "Track order flow and payment mix.",
   },
@@ -58,6 +83,8 @@ const adminLinks = [
     key: "users",
     label: "Users",
     href: "/owner/users",
+    icon: Users2,
+    group: "Customers",
     eyebrow: "Customers",
     description: "Review accounts and access status.",
   },
@@ -65,6 +92,8 @@ const adminLinks = [
     key: "reviews",
     label: "Reviews",
     href: "/owner/reviews",
+    icon: Star,
+    group: "Customers",
     eyebrow: "Moderation",
     description: "Approve or reject customer feedback.",
   },
@@ -72,6 +101,8 @@ const adminLinks = [
     key: "coupons",
     label: "Coupons",
     href: "/owner/coupons",
+    icon: TicketPercent,
+    group: "Marketing",
     eyebrow: "Promotions",
     description: "Launch offers and campaign codes.",
   },
@@ -92,7 +123,6 @@ const collectionSchema = z.object({
   name: z.string().min(2),
   handle: z.string().min(2),
   description: z.string().min(5),
-  bannerImageUrl: z.string().url(),
 });
 
 const couponSchema = z.object({
@@ -119,7 +149,6 @@ const defaultCollectionValues = {
   name: "",
   handle: "",
   description: "",
-  bannerImageUrl: "https://placehold.co/1600x720/png?text=Collection",
 };
 
 function toDateTimeInputValue(value) {
@@ -162,28 +191,78 @@ function extractRequestError(error, fallbackMessage) {
   return fallbackMessage;
 }
 
+const searchPlaceholders = {
+  overview: "Search products, orders, customers...",
+  products: "Search products or SKU...",
+  collections: "Search collection names...",
+  orders: "Search order ids or payment method...",
+  users: "Search name or email...",
+  reviews: "Search reviewer or product...",
+  coupons: "Search coupon codes...",
+};
+
+const sectionTitles = {
+  overview: "Dashboard",
+  products: "Products",
+  collections: "Collections",
+  orders: "Orders",
+  users: "Customers",
+  reviews: "Reviews",
+  coupons: "Coupons",
+};
+
+const sectionSubtitles = {
+  overview: "Daily trading pulse, moderation, and storefront readiness.",
+  products: "Manage catalog launches, pricing, and inventory visibility.",
+  collections: "Shape discovery and curate the way the storefront merchandises.",
+  orders: "Track recent order flow, payments, and fulfillment momentum.",
+  users: "Monitor customer accounts and manage access when needed.",
+  reviews: "Approve, remove, and monitor the review stream with confidence.",
+  coupons: "Launch and monitor promotional codes for campaigns and drops.",
+};
+
 function PanelSection({ id, eyebrow, title, description, children }) {
   return (
-    <section id={id} className="rounded-[2.5rem] bg-white p-6 shadow-soft md:p-8">
-      <div className="border-b border-ink/8 pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ink/45">
+    <section
+      id={id}
+      className="overflow-hidden rounded-[1.35rem] border border-[#ede9e3] bg-white p-5 shadow-[0_16px_45px_rgba(15,23,42,0.06)] md:p-7"
+    >
+      <div className="border-b border-[#ede9e3] pb-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-ink/40">
           {eyebrow}
         </p>
-        <h2 className="mt-3 font-display text-4xl text-ink md:text-5xl">{title}</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-copy/72">{description}</p>
+        <h2 className="mt-3 font-display text-[2.1rem] leading-none text-ink md:text-[2.45rem]">
+          {title}
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-copy/72">{description}</p>
       </div>
       <div className="mt-6">{children}</div>
     </section>
   );
 }
 
-function MetricCard({ label, value, caption }) {
+function MetricCard({ label, value, caption, tone = "gold" }) {
+  const tones = {
+    gold:
+      "before:bg-[#c9956c] text-[#1a1714] bg-white border-[#ede9e3]",
+    green:
+      "before:bg-emerald-600 text-[#1a1714] bg-white border-[#ede9e3]",
+    blue:
+      "before:bg-sky-700 text-[#1a1714] bg-white border-[#ede9e3]",
+    red:
+      "before:bg-rose-600 text-[#1a1714] bg-white border-[#ede9e3]",
+  };
+
   return (
-    <div className="rounded-[2rem] border border-ink/8 bg-cream/60 p-5">
-      <p className="text-sm text-copy/60">{label}</p>
-      <p className="mt-3 font-display text-4xl text-ink">{value}</p>
+    <div
+      className={`relative overflow-hidden rounded-[1.1rem] border p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)] before:absolute before:right-0 before:top-0 before:h-16 before:w-16 before:rounded-bl-[2rem] before:opacity-15 ${tones[tone]}`}
+    >
+      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-copy/48">
+        {label}
+      </p>
+      <p className="mt-3 font-display text-[2.15rem] leading-none text-ink">{value}</p>
       {caption ? (
-        <p className="mt-2 text-xs uppercase tracking-[0.18em] text-copy/45">
+        <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-copy/46">
           {caption}
         </p>
       ) : null}
@@ -193,23 +272,28 @@ function MetricCard({ label, value, caption }) {
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-[2rem] border border-dashed border-ink/12 bg-cream/40 px-5 py-8 text-sm text-copy/65">
-      {message}
+    <div className="rounded-[1.1rem] border border-dashed border-[#d8d2c8] bg-[#faf8f5] px-5 py-8 text-sm text-copy/65">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ink/40">
+        No records yet
+      </p>
+      <p className="mt-3 leading-7">{message}</p>
     </div>
   );
 }
 
 function StatusPill({ tone = "neutral", children }) {
   const tones = {
-    neutral: "bg-ink/6 text-ink/70",
-    success: "bg-emerald-100 text-emerald-800",
-    caution: "bg-amber-100 text-amber-800",
-    accent: "bg-accent/18 text-ink",
-    danger: "bg-rose-100 text-rose-800",
+    neutral: "bg-slate-100 text-slate-700",
+    success: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    caution: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+    accent: "bg-[#f5e4d0] text-[#8a5e3d] ring-1 ring-[#ecd2b5]",
+    danger: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
   };
 
   return (
-    <span className={`rounded-full px-3 py-2 text-xs font-semibold ${tones[tone]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${tones[tone]}`}
+    >
       {children}
     </span>
   );
@@ -234,6 +318,7 @@ export function AdminDashboardPage() {
   const [busyAction, setBusyAction] = useState("");
   const [error, setError] = useState("");
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [workspaceSearch, setWorkspaceSearch] = useState("");
 
   const productForm = useForm({
     resolver: zodResolver(productSchema),
@@ -258,8 +343,24 @@ export function AdminDashboardPage() {
       getProducts({ size: 20 }),
       getCollections(),
     ]);
-    setProducts(productData.items || []);
-    setCollections(collectionData || []);
+    const nextProducts = productData.items || [];
+    const nextCollections = collectionData || [];
+    const selectedCollectionId = productForm.getValues("primaryCollectionId");
+    const hasSelectedCollection = nextCollections.some(
+      (collection) => collection.id === selectedCollectionId
+    );
+
+    setProducts(nextProducts);
+    setCollections(nextCollections);
+
+    if (!nextCollections.length) {
+      productForm.setValue("primaryCollectionId", "");
+      return;
+    }
+
+    if (!hasSelectedCollection) {
+      productForm.setValue("primaryCollectionId", nextCollections[0].id);
+    }
   }
 
   async function refreshOrders() {
@@ -460,158 +561,515 @@ export function AdminDashboardPage() {
     },
   ];
 
+  const pendingReviewCount = reviews.filter((review) => !review.approved).length;
+  const approvedReviewCount = reviews.filter((review) => review.approved).length;
+  const catalogReady = products.length > 0 && collections.length > 0;
+  const activeLink =
+    adminLinks.find((link) => link.key === activeSection) || adminLinks[0];
+  const searchTerm = workspaceSearch.trim().toLowerCase();
+  const filteredProducts = products.filter((product) =>
+    searchTerm
+      ? [
+          product.name,
+          product.slug,
+          product.metal,
+          product.primaryCollectionName,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      : true
+  );
+  const filteredCollections = collections.filter((collection) =>
+    searchTerm
+      ? [collection.name, collection.handle, collection.description]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      : true
+  );
+  const filteredOrders = orders.filter((order) =>
+    searchTerm
+      ? [
+          order.id,
+          order.status,
+          order.paymentMethod,
+          order.userName,
+          order.shippingName,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      : true
+  );
+  const filteredUsers = users.filter((siteUser) =>
+    searchTerm
+      ? [siteUser.name, siteUser.email, siteUser.role]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      : true
+  );
+  const filteredReviews = reviews.filter((review) =>
+    searchTerm
+      ? [review.userName, review.productName, review.title, review.body]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      : true
+  );
+  const filteredCoupons = coupons.filter((coupon) =>
+    searchTerm
+      ? [coupon.code, coupon.discountType]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      : true
+  );
+  const lowStockProducts = products
+    .filter((product) => Number(product.stockQty || 0) <= 5)
+    .slice(0, 4);
+  const recentPendingReviews = reviews.filter((review) => !review.approved).slice(0, 3);
+  const groupedAdminLinks = ["Main", "Catalog", "Marketing", "Customers"].map(
+    (group) => ({
+      group,
+      links: adminLinks.filter((link) => link.group === group),
+    })
+  );
+  const navBadges = {
+    orders: orders.length || null,
+    reviews: pendingReviewCount || null,
+    products: stats?.lowStockProducts || null,
+  };
+  const ActiveIcon = activeLink.icon;
+
   return (
-    <section className="section-shell py-8 md:py-10">
-      <div id="admin-top" className="grid gap-6 xl:grid-cols-[280px,minmax(0,1fr)]">
-        <aside className="self-start rounded-[2.5rem] bg-ink p-6 text-white shadow-soft xl:sticky xl:top-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-            Aurora Owner Desk
-          </p>
-          <h1 className="mt-4 font-display text-4xl leading-none md:text-5xl">
-            Manage the full storefront from one panel.
-          </h1>
-          <p className="mt-4 text-sm leading-6 text-white/74">
-            Catalog, promotions, customers, moderation, and the order book now
-            live in a single owner surface.
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button
-              type="button"
-              variant="accent"
-              className="min-w-[120px]"
-              onClick={refreshAll}
-              disabled={loading}
-            >
-              {loading ? "Refreshing..." : "Refresh"}
-            </Button>
-            <Button
-              as="a"
-              href={storefrontUrl}
-              target="_blank"
-              rel="noreferrer"
-              variant="secondary"
-              className="min-w-[120px] border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-            >
-              View Store
-            </Button>
+    <section className="min-h-screen bg-[#f8f6f2] p-4 sm:p-5 lg:p-6">
+      <div className="mx-auto flex max-w-[1700px] gap-5">
+        <aside className="hidden min-h-[calc(100vh-3rem)] w-[270px] shrink-0 flex-col overflow-hidden rounded-[1.55rem] bg-[linear-gradient(180deg,#0f0f13_0%,#16161d_100%)] text-white shadow-[0_24px_70px_rgba(15,15,19,0.28)] lg:flex">
+          <div className="border-b border-white/10 px-6 pb-5 pt-7">
+            <p className="font-display text-[2rem] leading-none text-[#c9956c]">
+              Aurora Gems
+            </p>
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.36em] text-white/35">
+              Admin Panel
+            </p>
           </div>
 
-          <div className="mt-8 space-y-2">
-            {adminLinks.map((link) => {
-              const isActive = activeSection === link.key;
-              return (
-                <Link
-                  key={link.key}
-                  to={link.href}
-                  className={`block rounded-[1.5rem] px-4 py-4 transition ${
-                    isActive
-                      ? "bg-white text-ink"
-                      : "bg-white/6 text-white/82 hover:bg-white/12"
-                  }`}
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-60">
-                    {link.eyebrow}
+          <div className="px-3 py-4">
+            {groupedAdminLinks.map((section) =>
+              section.links.length ? (
+                <div key={section.group} className="mb-5 last:mb-0">
+                  <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/25">
+                    {section.group}
                   </p>
-                  <p className="mt-1 font-semibold">{link.label}</p>
-                  <p className="mt-2 text-sm leading-5 opacity-70">
-                    {link.description}
-                  </p>
-                </Link>
-              );
-            })}
+                  <div className="space-y-1.5">
+                    {section.links.map((link) => {
+                      const isActive = activeSection === link.key;
+                      const LinkIcon = link.icon;
+                      const badge = navBadges[link.key];
+                      return (
+                        <Link
+                          key={link.key}
+                          to={link.href}
+                          className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition ${
+                            isActive
+                              ? "border-[#c9956c]/25 bg-[linear-gradient(135deg,rgba(201,149,108,0.22),rgba(201,149,108,0.08))] text-[#e8b48a]"
+                              : "border-transparent bg-white/0 text-white/55 hover:bg-white/6 hover:text-white/88"
+                          }`}
+                        >
+                          <LinkIcon size={17} className={isActive ? "opacity-100" : "opacity-70"} />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{link.label}</p>
+                            <p className="mt-0.5 truncate text-[11px] opacity-60">
+                              {link.eyebrow}
+                            </p>
+                          </div>
+                          {badge ? (
+                            <span className="rounded-full bg-[#c9956c] px-2 py-0.5 text-[10px] font-bold text-[#0f0f13]">
+                              {badge}
+                            </span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null
+            )}
           </div>
 
-          <div className="mt-8 rounded-[1.75rem] bg-white/10 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/58">
-              Session
-            </p>
-            <p className="mt-2 font-semibold">{user?.name}</p>
-            <p className="text-sm text-white/70">{user?.email}</p>
-            <p className="mt-4 text-xs uppercase tracking-[0.18em] text-white/58">
-              Last sync
-            </p>
-            <p className="mt-2 text-sm text-white/80">
-              {lastSyncedAt
-                ? lastSyncedAt.toLocaleTimeString("en-IN")
-                : "Waiting for first fetch"}
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-5 w-full border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-              onClick={logout}
-            >
-              Sign Out
-            </Button>
+          <div className="mt-auto border-t border-white/10 p-4">
+            <div className="rounded-[1.15rem] border border-white/10 bg-white/6 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#c9956c,#a0704a)] font-semibold text-white">
+                  {user?.name?.[0] || "O"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-white/90">
+                    {user?.name || "Owner"}
+                  </p>
+                  <p className="truncate text-xs text-white/45">{user?.email}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 rounded-xl border border-white/8 bg-black/10 p-3">
+                <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.18em] text-white/42">
+                  <span>Last sync</span>
+                  <Sparkles size={14} />
+                </div>
+                <p className="text-sm text-white/82">
+                  {lastSyncedAt
+                    ? lastSyncedAt.toLocaleTimeString("en-IN")
+                    : "Waiting for first fetch"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/12"
+              >
+                <LogOut size={16} />
+                Sign Out
+              </button>
+            </div>
           </div>
         </aside>
 
-        <div className="space-y-6">
-          {error ? (
-            <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
-              {error}
-            </div>
-          ) : null}
+        <div className="min-w-0 flex-1">
+          <div id="admin-top" className="sticky top-4 z-20 space-y-4">
+            <header className="rounded-[1.3rem] border border-[#ede9e3] bg-white/95 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur sm:px-5">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5e4d0] text-[#8a5e3d]">
+                    <ActiveIcon size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-ink/38">
+                      Owner Panel / {sectionTitles[activeSection]}
+                    </p>
+                    <h1 className="mt-2 font-display text-[2rem] leading-none text-ink sm:text-[2.2rem]">
+                      {sectionTitles[activeSection]}
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-copy/68">
+                      {sectionSubtitles[activeSection]}
+                    </p>
+                  </div>
+                </div>
 
-          <PanelSection
-            id="admin-section-overview"
-            eyebrow="Snapshot"
-            title="One place to run the customer site."
-            description="This panel keeps the current operational picture visible while letting you change the live shopping experience without leaving the page."
-          >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {pulseCards.map((card) => (
-                <MetricCard
-                  key={card.label}
-                  label={card.label}
-                  value={card.value}
-                  caption={card.caption}
-                />
-              ))}
-            </div>
+                <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
+                  <label className="flex w-full items-center gap-3 rounded-xl border border-[#ede9e3] bg-[#faf8f5] px-3.5 py-3 sm:max-w-[280px]">
+                    <Search size={16} className="text-copy/45" />
+                    <input
+                      value={workspaceSearch}
+                      onChange={(event) => setWorkspaceSearch(event.target.value)}
+                      placeholder={searchPlaceholders[activeSection]}
+                      className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-copy/40"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#ede9e3] bg-white text-copy/72 transition hover:border-[#c9956c] hover:text-[#8a5e3d]"
+                    aria-label="Notifications"
+                  >
+                    <Bell size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={refreshAll}
+                    disabled={loading}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d8d2c8] bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:border-[#c9956c] hover:text-[#8a5e3d] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
+                    {loading ? "Refreshing..." : "Refresh"}
+                  </button>
+                  <a
+                    href={storefrontUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#c9956c,#b07850)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(201,149,108,0.24)] transition hover:-translate-y-0.5"
+                  >
+                    View Store
+                    <ArrowUpRight size={16} />
+                  </a>
+                </div>
+              </div>
+            </header>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[2rem] border border-ink/8 p-5">
-                <p className="text-sm text-copy/60">Products live</p>
-                <p className="mt-3 font-display text-4xl text-ink">
-                  {products.length}
-                </p>
-              </div>
-              <div className="rounded-[2rem] border border-ink/8 p-5">
-                <p className="text-sm text-copy/60">Collections</p>
-                <p className="mt-3 font-display text-4xl text-ink">
-                  {collections.length}
-                </p>
-              </div>
-              <div className="rounded-[2rem] border border-ink/8 p-5">
-                <p className="text-sm text-copy/60">Recent orders loaded</p>
-                <p className="mt-3 font-display text-4xl text-ink">
-                  {orders.length}
-                </p>
-              </div>
-              <div className="rounded-[2rem] border border-ink/8 p-5">
-                <p className="text-sm text-copy/60">Pending reviews</p>
-                <p className="mt-3 font-display text-4xl text-ink">
-                  {reviews.length}
-                </p>
+            <div className="overflow-x-auto lg:hidden">
+              <div className="flex min-w-max gap-2 pb-1">
+                {adminLinks.map((link) => {
+                  const isActive = activeSection === link.key;
+                  const LinkIcon = link.icon;
+                  return (
+                    <Link
+                      key={link.key}
+                      to={link.href}
+                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? "border-[#c9956c]/30 bg-[#f5e4d0] text-[#8a5e3d]"
+                          : "border-[#ede9e3] bg-white text-copy/70"
+                      }`}
+                    >
+                      <LinkIcon size={15} />
+                      {link.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-          </PanelSection>
+          </div>
 
-          <PanelSection
-            id="admin-section-products"
-            eyebrow="Catalog"
-            title="Products"
-            description="Keep the assortment fresh, control product pricing, and remove stale items from the live storefront."
-          >
+          <div className="mt-5 space-y-5">
+            {error ? (
+              <div className="rounded-[1.15rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            {activeSection === "overview" ? (
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr),340px]">
+                <div className="overflow-hidden rounded-[1.4rem] border border-[#1b1b22] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_32%),linear-gradient(135deg,#0f0f13,#191922_60%,#1c2432)] p-6 text-white shadow-[0_24px_60px_rgba(15,15,19,0.22)] sm:p-7">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/45">
+                    Owner Workspace
+                  </p>
+                  <h2 className="mt-4 font-display text-[2.5rem] leading-none sm:text-[3.2rem]">
+                    Welcome back, {user?.name || "Owner"}.
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70">
+                    Your operations view now mirrors the luxury control-room feel
+                    from the reference design while keeping the real product,
+                    review, coupon, and user actions live.
+                  </p>
+
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-white/8 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">
+                        Catalog
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-white">
+                        {catalogReady ? "Ready for merchandising" : "Needs first products"}
+                      </p>
+                    </div>
+                    <div className="rounded-[1rem] border border-white/10 bg-white/8 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">
+                        Review Queue
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-white">
+                        {pendingReviewCount} pending, {approvedReviewCount} approved
+                      </p>
+                    </div>
+                    <div className="rounded-[1rem] border border-white/10 bg-white/8 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">
+                        Session
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-white">
+                        {lastSyncedAt
+                          ? lastSyncedAt.toLocaleTimeString("en-IN")
+                          : "Waiting for first fetch"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+                  <MetricCard
+                    label="Products Live"
+                    value={products.length}
+                    caption="catalog count"
+                    tone="gold"
+                  />
+                  <MetricCard
+                    label="Pending Reviews"
+                    value={pendingReviewCount}
+                    caption="awaiting moderation"
+                    tone="blue"
+                  />
+                  <MetricCard
+                    label="Low Stock Watch"
+                    value={stats?.lowStockProducts ?? lowStockProducts.length}
+                    caption="needs action"
+                    tone="red"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {activeSection === "overview" ? (
+              <PanelSection
+                id="admin-section-overview"
+                eyebrow="Snapshot"
+                title="One place to run the customer site."
+                description="This panel keeps the current operational picture visible while letting you change the live shopping experience without leaving the page."
+              >
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {pulseCards.map((card, index) => (
+                    <MetricCard
+                      key={card.label}
+                      label={card.label}
+                      value={card.value}
+                      caption={card.caption}
+                      tone={["gold", "green", "blue", "red"][index]}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-copy/48">
+                      Products Live
+                    </p>
+                    <p className="mt-3 font-display text-4xl text-ink">{products.length}</p>
+                  </div>
+                  <div className="rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-copy/48">
+                      Collections
+                    </p>
+                    <p className="mt-3 font-display text-4xl text-ink">
+                      {collections.length}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-copy/48">
+                      Recent Orders
+                    </p>
+                    <p className="mt-3 font-display text-4xl text-ink">{orders.length}</p>
+                  </div>
+                  <div className="rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-copy/48">
+                      Pending Reviews
+                    </p>
+                    <p className="mt-3 font-display text-4xl text-ink">
+                      {pendingReviewCount}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-copy/48">
+                          Recent Orders
+                        </p>
+                        <h3 className="mt-2 font-display text-3xl text-ink">
+                          Checkout flow
+                        </h3>
+                      </div>
+                      <StatusPill tone="accent">{filteredOrders.length} loaded</StatusPill>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      {filteredOrders.slice(0, 4).length ? (
+                        filteredOrders.slice(0, 4).map((order) => (
+                          <div
+                            key={order.id}
+                            className="flex items-center gap-3 rounded-[1rem] border border-white bg-white px-4 py-3"
+                          >
+                            <div className="min-w-[86px] font-mono text-xs font-semibold text-[#8a5e3d]">
+                              #{order.id.slice(0, 8)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-ink">
+                                {order.userName || "Aurora customer"}
+                              </p>
+                              <p className="text-xs text-copy/52">
+                                {formatDisplayDate(order.createdAt)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-ink">
+                                {formatPrice(order.total)}
+                              </p>
+                              <p className="text-xs text-copy/52">{order.status}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <EmptyState message="Recent orders will appear here once customers start checking out." />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-copy/48">
+                          Moderation Queue
+                        </p>
+                        <h3 className="mt-2 font-display text-3xl text-ink">
+                          Reviews and stock
+                        </h3>
+                      </div>
+                      <StatusPill tone="caution">{pendingReviewCount} pending</StatusPill>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      {recentPendingReviews.length ? (
+                        recentPendingReviews.map((review) => (
+                          <div
+                            key={review.id}
+                            className="rounded-[1rem] border border-white bg-white px-4 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-ink">
+                                  {review.userName}
+                                </p>
+                                <p className="truncate text-xs text-copy/52">
+                                  {review.productName || "Product review"}
+                                </p>
+                              </div>
+                              <StatusPill tone="caution">{review.rating} stars</StatusPill>
+                            </div>
+                            <p className="mt-2 max-h-12 overflow-hidden text-sm leading-6 text-copy/68">
+                              {review.body}
+                            </p>
+                          </div>
+                        ))
+                      ) : lowStockProducts.length ? (
+                        lowStockProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="flex items-center justify-between gap-3 rounded-[1rem] border border-white bg-white px-4 py-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-ink">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-copy/52">{product.metal}</p>
+                            </div>
+                            <StatusPill tone="danger">
+                              {product.stockQty || 0} left
+                            </StatusPill>
+                          </div>
+                        ))
+                      ) : (
+                        <EmptyState message="Pending reviews and low-stock items will surface here as activity picks up." />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </PanelSection>
+            ) : null}
+
+            {activeSection === "products" ? (
+              <PanelSection
+                id="admin-section-products"
+                eyebrow="Catalog"
+                title="Products"
+                description="Keep the assortment fresh, control product pricing, and remove stale items from the live storefront."
+              >
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr),380px]">
               <div className="space-y-4">
-                {products.length ? (
-                  products.map((product) => (
+                {filteredProducts.length ? (
+                  filteredProducts.map((product) => (
                     <div
                       key={product.id}
-                      className="rounded-[2rem] border border-ink/8 p-5"
+                      className="rounded-[1.15rem] border border-[#ede9e3] bg-[#fcfbf8] p-5 shadow-[0_6px_22px_rgba(15,23,42,0.03)]"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -679,7 +1137,7 @@ export function AdminDashboardPage() {
                         </div>
                       </div>
                       {inventoryEditor?.id === product.id ? (
-                        <div className="mt-5 rounded-[1.75rem] bg-cream/60 p-5">
+                        <div className="mt-5 rounded-[1.1rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
                           <div className="flex flex-wrap items-start justify-between gap-4">
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-copy/45">
@@ -814,11 +1272,17 @@ export function AdminDashboardPage() {
                     </div>
                   ))
                 ) : (
-                  <EmptyState message="No products are loaded yet." />
+                  <EmptyState
+                    message={
+                      searchTerm
+                        ? "No products match the current search."
+                        : "No products are loaded yet."
+                    }
+                  />
                 )}
               </div>
 
-              <div className="rounded-[2rem] bg-cream/60 p-5">
+              <div className="rounded-[1.15rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
                 <h3 className="font-display text-3xl text-ink">Create Product</h3>
                 <p className="mt-2 text-sm leading-6 text-copy/68">
                   Add a new SKU straight into the live catalog. Create a
@@ -991,21 +1455,23 @@ export function AdminDashboardPage() {
                 </form>
               </div>
             </div>
-          </PanelSection>
+              </PanelSection>
+            ) : null}
 
-          <PanelSection
-            id="admin-section-collections"
-            eyebrow="Merchandising"
-            title="Collections"
-            description="Control the browsing structure that customers see first on the storefront."
-          >
+            {activeSection === "collections" ? (
+              <PanelSection
+                id="admin-section-collections"
+                eyebrow="Merchandising"
+                title="Collections"
+                description="Control the browsing structure that customers see first on the storefront."
+              >
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr),360px]">
               <div className="space-y-4">
-                {collections.length ? (
-                  collections.map((collection) => (
+                {filteredCollections.length ? (
+                  filteredCollections.map((collection) => (
                     <div
                       key={collection.id}
-                      className="rounded-[2rem] border border-ink/8 p-5"
+                      className="rounded-[1.15rem] border border-[#ede9e3] bg-[#fcfbf8] p-5 shadow-[0_6px_22px_rgba(15,23,42,0.03)]"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -1021,17 +1487,52 @@ export function AdminDashboardPage() {
                       <p className="mt-3 text-sm leading-6 text-copy/68">
                         {collection.description}
                       </p>
-                      <p className="mt-4 text-xs uppercase tracking-[0.18em] text-copy/45">
-                        {collection.productCount} products
-                      </p>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs uppercase tracking-[0.18em] text-copy/45">
+                          {collection.productCount} products
+                        </p>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="border-rose-200 text-rose-700 hover:border-rose-300 hover:text-rose-800"
+                          disabled={busyAction === `delete-collection-${collection.id}`}
+                          onClick={async () => {
+                            setBusyAction(`delete-collection-${collection.id}`);
+                            setError("");
+                            try {
+                              await deleteCollection(collection.id);
+                              await Promise.all([refreshCatalog(), refreshDashboard()]);
+                            } catch (actionError) {
+                              setError(
+                                extractRequestError(
+                                  actionError,
+                                  "Collection deletion failed. Try again."
+                                )
+                              );
+                            } finally {
+                              setBusyAction("");
+                            }
+                          }}
+                        >
+                          {busyAction === `delete-collection-${collection.id}`
+                            ? "Deleting..."
+                            : "Delete"}
+                        </Button>
+                      </div>
                     </div>
                   ))
                 ) : (
-                  <EmptyState message="Collections have not been created yet." />
+                  <EmptyState
+                    message={
+                      searchTerm
+                        ? "No collections match the current search."
+                        : "Collections have not been created yet."
+                    }
+                  />
                 )}
               </div>
 
-              <div className="rounded-[2rem] bg-cream/60 p-5">
+              <div className="rounded-[1.15rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
                 <h3 className="font-display text-3xl text-ink">
                   Create Collection
                 </h3>
@@ -1082,11 +1583,6 @@ export function AdminDashboardPage() {
                     placeholder="Description"
                     {...collectionForm.register("description")}
                   />
-                  <input
-                    className="w-full rounded-full border border-ink/10 bg-white px-5 py-3"
-                    placeholder="Banner image URL"
-                    {...collectionForm.register("bannerImageUrl")}
-                  />
                   <Button
                     type="submit"
                     className="w-full"
@@ -1099,20 +1595,22 @@ export function AdminDashboardPage() {
                 </form>
               </div>
             </div>
-          </PanelSection>
+              </PanelSection>
+            ) : null}
 
-          <PanelSection
-            id="admin-section-orders"
-            eyebrow="Fulfillment"
-            title="Recent Orders"
-            description="A quick operational view of checkout flow, payment method mix, and order status."
-          >
+            {activeSection === "orders" ? (
+              <PanelSection
+                id="admin-section-orders"
+                eyebrow="Fulfillment"
+                title="Recent Orders"
+                description="A quick operational view of checkout flow, payment method mix, and order status."
+              >
             <div className="space-y-4">
-              {orders.length ? (
-                orders.map((order) => (
+              {filteredOrders.length ? (
+                filteredOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="rounded-[2rem] border border-ink/8 p-5"
+                    className="rounded-[1.15rem] border border-[#ede9e3] bg-[#fcfbf8] p-5 shadow-[0_6px_22px_rgba(15,23,42,0.03)]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
@@ -1155,23 +1653,31 @@ export function AdminDashboardPage() {
                   </div>
                 ))
               ) : (
-                <EmptyState message="Recent orders will appear here once customers start checking out." />
+                <EmptyState
+                  message={
+                    searchTerm
+                      ? "No orders match the current search."
+                      : "Recent orders will appear here once customers start checking out."
+                  }
+                />
               )}
             </div>
-          </PanelSection>
+              </PanelSection>
+            ) : null}
 
-          <PanelSection
-            id="admin-section-users"
-            eyebrow="Customers"
-            title="Users"
-            description="Review the customer base, spot the owner account, and quickly disable abusive or test users."
-          >
+            {activeSection === "users" ? (
+              <PanelSection
+                id="admin-section-users"
+                eyebrow="Customers"
+                title="Users"
+                description="Review the customer base, spot the owner account, and quickly disable abusive or test users."
+              >
             <div className="space-y-4">
-              {users.length ? (
-                users.map((siteUser) => (
+              {filteredUsers.length ? (
+                filteredUsers.map((siteUser) => (
                   <div
                     key={siteUser.id}
-                    className="rounded-[2rem] border border-ink/8 p-5"
+                    className="rounded-[1.15rem] border border-[#ede9e3] bg-[#fcfbf8] p-5 shadow-[0_6px_22px_rgba(15,23,42,0.03)]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
@@ -1225,27 +1731,56 @@ export function AdminDashboardPage() {
                   </div>
                 ))
               ) : (
-                <EmptyState message="User accounts will appear here after sign-up." />
+                <EmptyState
+                  message={
+                    searchTerm
+                      ? "No users match the current search."
+                      : "User accounts will appear here after sign-up."
+                  }
+                />
               )}
             </div>
-          </PanelSection>
+              </PanelSection>
+            ) : null}
 
-          <PanelSection
-            id="admin-section-reviews"
-            eyebrow="Moderation"
-            title="Reviews"
-            description="Approve reviews that strengthen trust and reject low-quality or abusive submissions before they go public."
-          >
-            <div className="space-y-4">
-              {reviews.length ? (
-                reviews.map((review) => (
+            {activeSection === "reviews" ? (
+              <PanelSection
+                id="admin-section-reviews"
+                eyebrow="Moderation"
+                title="Reviews"
+                description="Review the full moderation stream, publish strong customer feedback, and remove low-quality reviews cleanly so the storefront stays trustworthy."
+              >
+            <div className="grid gap-4 md:grid-cols-3">
+              <MetricCard
+                label="Total Reviews Loaded"
+                value={reviews.length}
+                caption="all statuses"
+              />
+              <MetricCard
+                label="Approved Reviews"
+                value={approvedReviewCount}
+                caption="visible on storefront"
+              />
+              <MetricCard
+                label="Pending Reviews"
+                value={pendingReviewCount}
+                caption="awaiting decision"
+              />
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {filteredReviews.length ? (
+                filteredReviews.map((review) => (
                   <div
                     key={review.id}
-                    className="rounded-[2rem] border border-ink/8 p-5"
+                    className="rounded-[1.15rem] border border-[#ede9e3] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,248,245,0.92))] p-5 shadow-[0_6px_22px_rgba(15,23,42,0.03)]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p className="font-semibold text-ink">{review.userName}</p>
+                        <p className="mt-2 text-sm text-copy/65">
+                          {review.productName || "Product review"}
+                        </p>
                         <p className="mt-1 text-xs uppercase tracking-[0.18em] text-copy/45">
                           {review.rating} stars • {formatDisplayDate(review.createdAt)}
                         </p>
@@ -1260,70 +1795,97 @@ export function AdminDashboardPage() {
                     <p className="mt-2 text-sm leading-6 text-copy/72">
                       {review.body}
                     </p>
+                    {review.imageUrl ? (
+                      <div className="mt-4 overflow-hidden rounded-[1.5rem]">
+                        <img
+                          src={review.imageUrl}
+                          alt={review.title || "Review upload"}
+                          className="h-40 w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null}
                     <div className="mt-5 flex flex-wrap gap-3">
-                      <Button
-                        type="button"
-                        disabled={busyAction === `review-approve-${review.id}`}
-                        onClick={async () => {
-                          setBusyAction(`review-approve-${review.id}`);
-                          setError("");
-                          try {
-                            await moderateReview(review.id, { approved: true });
-                            await refreshReviews();
-                          } catch (actionError) {
-                            setError("Review approval failed. Try again.");
-                          } finally {
-                            setBusyAction("");
-                          }
-                        }}
-                      >
-                        {busyAction === `review-approve-${review.id}`
-                          ? "Approving..."
-                          : "Approve"}
-                      </Button>
+                      {!review.approved ? (
+                        <Button
+                          type="button"
+                          disabled={busyAction === `review-approve-${review.id}`}
+                          onClick={async () => {
+                            setBusyAction(`review-approve-${review.id}`);
+                            setError("");
+                            try {
+                              await moderateReview(review.id, { approved: true });
+                              await refreshReviews();
+                            } catch (actionError) {
+                              setError("Review approval failed. Try again.");
+                            } finally {
+                              setBusyAction("");
+                            }
+                          }}
+                        >
+                          {busyAction === `review-approve-${review.id}`
+                            ? "Approving..."
+                            : "Approve & Publish"}
+                        </Button>
+                      ) : (
+                        <Button type="button" variant="secondary" disabled>
+                          Live on Storefront
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="secondary"
-                        disabled={busyAction === `review-reject-${review.id}`}
+                        className="border-rose-200 text-rose-700 hover:border-rose-300 hover:text-rose-800"
+                        disabled={busyAction === `review-remove-${review.id}`}
                         onClick={async () => {
-                          setBusyAction(`review-reject-${review.id}`);
+                          setBusyAction(`review-remove-${review.id}`);
                           setError("");
                           try {
-                            await moderateReview(review.id, { approved: false });
+                            await deleteAdminReview(review.id);
                             await refreshReviews();
                           } catch (actionError) {
-                            setError("Review rejection failed. Try again.");
+                            setError("Review removal failed. Try again.");
                           } finally {
                             setBusyAction("");
                           }
                         }}
                       >
-                        {busyAction === `review-reject-${review.id}`
-                          ? "Rejecting..."
-                          : "Reject"}
+                        {busyAction === `review-remove-${review.id}`
+                          ? "Removing..."
+                          : review.approved
+                            ? "Remove from Store"
+                            : "Reject & Remove"}
                       </Button>
                     </div>
                   </div>
                 ))
               ) : (
-                <EmptyState message="There are no pending reviews right now." />
+                <EmptyState
+                  message={
+                    searchTerm
+                      ? "No reviews match the current search."
+                      : "There are no customer reviews yet. New reviews will appear here for moderation as they are submitted."
+                  }
+                />
               )}
             </div>
-          </PanelSection>
+              </PanelSection>
+            ) : null}
 
-          <PanelSection
-            id="admin-section-coupons"
-            eyebrow="Promotions"
-            title="Coupons"
-            description="Create offer codes without leaving the admin flow and keep current campaign performance visible."
-          >
+            {activeSection === "coupons" ? (
+              <PanelSection
+                id="admin-section-coupons"
+                eyebrow="Promotions"
+                title="Coupons"
+                description="Create offer codes without leaving the admin flow and keep current campaign performance visible."
+              >
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr),360px]">
               <div className="space-y-4">
-                {coupons.length ? (
-                  coupons.map((coupon) => (
+                {filteredCoupons.length ? (
+                  filteredCoupons.map((coupon) => (
                     <div
                       key={coupon.id}
-                      className="rounded-[2rem] border border-ink/8 p-5"
+                      className="rounded-[1.15rem] border border-[#ede9e3] bg-[#fcfbf8] p-5 shadow-[0_6px_22px_rgba(15,23,42,0.03)]"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -1360,11 +1922,17 @@ export function AdminDashboardPage() {
                     </div>
                   ))
                 ) : (
-                  <EmptyState message="No coupons exist yet." />
+                  <EmptyState
+                    message={
+                      searchTerm
+                        ? "No coupons match the current search."
+                        : "No coupons exist yet."
+                    }
+                  />
                 )}
               </div>
 
-              <div className="rounded-[2rem] bg-cream/60 p-5">
+              <div className="rounded-[1.15rem] border border-[#ede9e3] bg-[#faf8f5] p-5">
                 <h3 className="font-display text-3xl text-ink">Create Coupon</h3>
                 <p className="mt-2 text-sm leading-6 text-copy/68">
                   Launch a discount code quickly for a sale, a collection drop,
@@ -1436,8 +2004,10 @@ export function AdminDashboardPage() {
                 </form>
               </div>
             </div>
-          </PanelSection>
+              </PanelSection>
+            ) : null}
         </div>
+      </div>
       </div>
     </section>
   );
